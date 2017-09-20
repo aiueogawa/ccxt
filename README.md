@@ -19,6 +19,28 @@ Current featurelist:
 
 [ccxt on GitHub](https://github.com/kroitor/ccxt) | [Install](#install) | [Usage](#usage) | [Manual](https://github.com/kroitor/ccxt/wiki) | [Examples](https://github.com/kroitor/ccxt/tree/master/examples) | [Changelog](https://github.com/kroitor/ccxt/blob/master/CHANGELOG.md) | [Contributing](https://github.com/kroitor/ccxt/blob/master/CONTRIBUTING.md) | [**Public Offer**](#public-offer)
 
+## Installation for DataGrid
+
+```
+git clone https://github.com/aiueogawa/ccxt
+cd ccxt
+pip install .
+```
+
+## Usage for DataGrid
+
+```
+import datagrid
+print(datagrid.exchanges)
+>>> ['_1broker', '_1btcxe', 'acx', 'anxpro', 'binance', 'bit2c', 'bitbay', 'bitcoincoid', 'bitfinex', 'bitfinex2', 'bitflyer', 'bitlish', 'bitmarket', 'bitmex', 'bitso', 'bitstamp1', 'bitstamp', 'bittrex', 'bl3p', 'bleutrade', 'btcchina', 'btcexchange', 'btcmarkets', 'btctradeua', 'btcturk', 'btcx', 'bter', 'bxinth', 'ccex', 'cex', 'chbtc', 'chilebit', 'coincheck', 'coinfloor', 'coingi', 'coinmarketcap', 'coinmate', 'coinsecure', 'coinspot', 'cryptopia', 'dsx', 'exmo', 'flowbtc', 'foxbit', 'fybse', 'fybsg', 'gatecoin', 'gdax', 'gemini', 'hitbtc', 'hitbtc2', 'huobi', 'huobicny', 'huobipro', 'independentreserve', 'itbit', 'jubi', 'kraken', 'lakebtc', 'livecoin', 'liqui', 'luno', 'mercado', 'mixcoins', 'nova', 'okcoincny', 'okcoinusd', 'okex', 'paymium', 'poloniex', 'quadrigacx', 'quoine', 'southxchange', 'surbitcoin', 'therock', 'urdubit', 'vaultoro', 'vbtc', 'virwox', 'xbtce', 'yobit', 'yunbi', 'zaif']
+```
+
+## Uninstalling for DataGrid
+
+```
+pip uninstall datagrid
+```
+
 ## Supported Cryptocurrency Exchange Markets
 
 The ccxt library currently supports the following 83 cryptocurrency exchange markets and trading APIs:
