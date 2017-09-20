@@ -757,6 +757,26 @@ class Exchange(object):
     def createMarketSellOrder(self, symbol, amount, params={}):
         return self.create_market_sell_order(symbol, amount, params)
 
+
+#==============================================================================
+# below functions added by Y.Okada
+    def fetch_market_data(self, symbol='BTC/JPY'):
+        self.order_book = self.fetch_order_book(symbol)
+        self.best_ask_price = self.order_book['asks'][0][0]
+        self.best_ask_volume = self.order_book['asks'][0][1]
+        self.best_bid_price = self.order_book['bids'][0][0]
+        self.best_bid_volume = self.order_book['bids'][0][1]
+
+    def fetch_my_balance(self):
+        self.my_balance = self.fetch_balance()
+        self.btc_free_balance = self.my_balance['BTC']['free']
+        self.jpy_free_balance = self.my_balance['JPY']['free']
+
+    def create_preudo_market_buy_order(self, symbol, amount, price_buff=50000):
+        self.create_market_buy_order(symbol, amount, self.best_ask_price + price_buff)
+
+    def create_preudo_market_sell_order(self, symbol, amount, price_buff=50000):
+        self.create_market_sell_order(symbol, amount, self.best_bid_price - price_buff)
 #==============================================================================
 
 # This comment is a placeholder for transpiled derived exchange implementations
