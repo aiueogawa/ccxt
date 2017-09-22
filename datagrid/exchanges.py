@@ -7338,6 +7338,17 @@ class coincheck (Exchange):
         params.update(config)
         super(coincheck, self).__init__(params)
         self.fetch_market_data()
+        self.pre_order_id = self.fetch_pre_order_id()
+
+    def fetch_pre_order_id(self):
+        while True:
+            trade_histry = self.privateGetExchangeOrdersTransactions()
+            if trade_histry['success']:
+                if len(trade_histry['transactions']) == 0:
+                    return None
+                else:
+                    return trade_histry['transactions'][0]['order_id']
+            sleep(1)
 
     def create_preudo_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
         return self.create_limit_buy_order(symbol, amount, int(self.best_ask_price) + price_buff, params)
@@ -16849,6 +16860,26 @@ class zaif (Exchange):
         params.update(config)
         super(zaif, self).__init__(params)
         self.fetch_market_data()
+        self.pre_order_id = self.fetch_pre_order_id()
+
+    def create_z_my_order_id():
+        import time
+        from datetime import datetime
+        dt = datetime.now()
+        milli_unix = int(time.mktime(dt.timetuple()) * 1e3 + dt.microsecond / 1e3)
+        z_my_order_id = 'z_' + str(milli_unix)
+        return z_my_order_id
+
+    def fetch_pre_order_id(self):
+        while True:
+            trade_histry = self.privatePostTradeHistory({'count': 1})
+            if trade_histry['success']:
+                if len(trade_histry['return']) == 0:
+                    return None
+                else:
+                    for order_num in trade_histry['return'].keys():
+                        return trade_histry['return'][order_num]['comment']
+            sleep(1)
 
     def fetch_markets(self):
         markets = self.publicGetCurrencyPairsAll()
@@ -16968,10 +16999,10 @@ class zaif (Exchange):
         }
 
     def create_preudo_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
-        return self.create_limit_buy_order(symbol, amount, int(self.best_ask_price) + price_buff, params)
+        return self.create_limit_buy_order(symbol, amount, int(self.best_ask_price) + price_buff, {'comment': create_z_my_order_id()})
 
     def create_preudo_market_sell_order(self, symbol, amount, params={}, price_buff=50000):
-        return self.create_limit_sell_order(symbol, amount, int(self.best_bid_price) - price_buff, params)
+        return self.create_limit_sell_order(symbol, amount, int(self.best_bid_price) - price_buff, {'comment': create_z_my_order_id()})
 
     def cancel_order(self, id, params={}):
         self.load_markets()
