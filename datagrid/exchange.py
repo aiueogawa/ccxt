@@ -772,11 +772,6 @@ class Exchange(object):
         self.btc_free_balance = self.my_balance['BTC']['free']
         self.jpy_free_balance = self.my_balance['JPY']['free']
 
-    def create_preudo_market_buy_order(self, symbol, amount, price_buff=50000):
-        self.create_market_buy_order(symbol, amount, self.best_ask_price + price_buff)
-
-    def create_preudo_market_sell_order(self, symbol, amount, price_buff=50000):
-        self.create_market_sell_order(symbol, amount, self.best_bid_price - price_buff)
 #==============================================================================
 
 # This comment is a placeholder for transpiled derived exchange implementations

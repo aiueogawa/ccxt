@@ -7337,6 +7337,10 @@ class coincheck (Exchange):
         }
         params.update(config)
         super(coincheck, self).__init__(params)
+        self.fetch_market_data()
+
+    def create_preudo_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
+        return self.create_limit_buy_order(symbol, amount, int(self.best_ask_price) + price_buff, params)
 
     def fetch_balance(self, params={}):
         balances = self.privateGetAccountsBalance()
@@ -7449,6 +7453,44 @@ class coincheck (Exchange):
             if response['success']:
                 return response
         raise ExchangeError(self.id + ' ' + self.json(response))
+
+    def handle_rest_errors(self, exception, http_status_code, response, url, method='GET'):
+        import re
+        error = None
+        details = response if response else None
+        # response_dict = json.loads(response)
+        if http_status_code == 429:
+            error = DDoSProtection
+        elif http_status_code in [404, 409, 422, 500, 501, 502, 520, 521, 522, 525]:
+            details = exception.read().decode('utf-8', 'ignore') if exception else (str(http_status_code) + ' ' + response)
+            error = ExchangeNotAvailable
+        elif http_status_code in [400, 403, 405, 503]:
+            reason = exception.read().decode('utf-8', 'ignore') if exception else response
+            if http_status_code == 400 and reason.find('Amount btc の所持金額が足りません'):
+                error = InsufficientFunds
+                details = reason
+            else:
+                # special case to detect ddos protection
+                ddos_protection = re.search('(cloudflare|incapsula)', reason, flags=re.IGNORECASE)
+                if ddos_protection:
+                    error = DDoSProtection
+                else:
+                    error = ExchangeNotAvailable
+                    details = '(possible reasons: ' + ', '.join([
+                        'invalid API keys',
+                        'bad or old nonce',
+                        'exchange is down or offline',
+                        'on maintenance',
+                        'DDoS protection',
+                        'rate-limiting',
+                        reason,
+                    ]) + ')'
+        elif http_status_code in [408, 504]:
+            error = RequestTimeout
+        elif http_status_code in [401, 511]:
+            error = AuthenticationError
+        if error:
+            self.raise_error(error, url, method, exception if exception else str(http_status_code), details)
 
 #------------------------------------------------------------------------------
 
@@ -16806,6 +16848,7 @@ class zaif (Exchange):
         }
         params.update(config)
         super(zaif, self).__init__(params)
+        self.fetch_market_data()
 
     def fetch_markets(self):
         markets = self.publicGetCurrencyPairsAll()
@@ -16924,6 +16967,12 @@ class zaif (Exchange):
             'id': str(response['return']['order_id']),
         }
 
+    def create_preudo_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
+        return self.create_limit_buy_order(symbol, amount, int(self.best_ask_price) + price_buff, params)
+
+    def create_preudo_market_sell_order(self, symbol, amount, params={}, price_buff=50000):
+        return self.create_limit_sell_order(symbol, amount, int(self.best_bid_price) - price_buff, params)
+
     def cancel_order(self, id, params={}):
         self.load_markets()
         return self.privatePostCancelOrder(self.extend({
@@ -17027,6 +17076,8 @@ class zaif (Exchange):
             }
         response = self.fetch(url, method, headers, body)
         if 'error' in response:
+            if response['error'].find('insufficient funds') >= 0:
+                raise InsufficientFunds(self.id + ' ' + response['error'])
             raise ExchangeError(self.id + ' ' + response['error'])
         if 'success' in response:
             if not response['success']:
