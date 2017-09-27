@@ -772,6 +772,14 @@ class Exchange(object):
         self.btc_free_balance = self.my_balance['BTC']['free']
         self.jpy_free_balance = self.my_balance['JPY']['free']
 
+    def start_stop_watch(self):
+        self.start_time = time.time()
+
+    def end_stop_watch(self):
+        self.elapsed_time = time.time() - self.start_time
+
+    def get_elapsed_stop_watch(self):
+        return time.time() - self.start_time
 #==============================================================================
 
 # This comment is a placeholder for transpiled derived exchange implementations

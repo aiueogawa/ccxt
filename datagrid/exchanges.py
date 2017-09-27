@@ -142,6 +142,7 @@ from datagrid.errors import NetworkError
 from datagrid.errors import DDoSProtection
 from datagrid.errors import RequestTimeout
 from datagrid.errors import ExchangeNotAvailable
+from datagrid.errors import ApiNonceError
 
 #------------------------------------------------------------------------------
 
@@ -7338,6 +7339,7 @@ class coincheck (Exchange):
         params.update(config)
         super(coincheck, self).__init__(params)
         self.fetch_market_data()
+        self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
 
     def fetch_pre_order_id(self):
@@ -7487,8 +7489,11 @@ class coincheck (Exchange):
             error = ExchangeNotAvailable
         elif http_status_code in [400, 403, 405, 503]:
             reason = exception.read().decode('utf-8', 'ignore') if exception else response
-            if http_status_code == 400 and reason.find('Amount btc の所持金額が足りません'):
+            if http_status_code == 400 and 'Amount btc の所持金額が足りません' in reason:
                 error = InsufficientFunds
+                details = reason
+            elif http_status_code == 403 and 'This api is not permitted' in reason:
+                error = AuthenticationError
                 details = reason
             else:
                 # special case to detect ddos protection
@@ -7509,7 +7514,11 @@ class coincheck (Exchange):
         elif http_status_code in [408, 504]:
             error = RequestTimeout
         elif http_status_code in [401, 511]:
-            error = AuthenticationError
+            details = exception.read().decode('utf-8')
+            if http_status_code == 401 and 'Nonce must be incremented' in details:
+                error = ApiNonceError
+            else:
+                error = AuthenticationError
         if error:
             self.raise_error(error, url, method, exception if exception else str(http_status_code), details)
 
@@ -16870,6 +16879,7 @@ class zaif (Exchange):
         params.update(config)
         super(zaif, self).__init__(params)
         self.fetch_market_data()
+        self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
 
     def create_z_my_order_id(self):
@@ -17115,6 +17125,7 @@ class zaif (Exchange):
         else:
             url += 'ecapi' if(api == 'ecapi') else 'tapi'
             nonce = self.nonce()
+            print(nonce)
             body = self.urlencode(self.extend({
                 'method': path,
                 'nonce': nonce,
@@ -17126,8 +17137,14 @@ class zaif (Exchange):
             }
         response = self.fetch(url, method, headers, body)
         if 'error' in response:
-            if response['error'].find('insufficient funds') >= 0:
+            print(response)
+            print(response['error'])
+            if 'insufficient funds' in response['error']:
                 raise InsufficientFunds(self.id + ' ' + response['error'])
+            if 'api key dont have' in response['error']:
+                raise AuthenticationError(self.id + ' ' + response['error'])
+            if 'nonce not incremented' in response['error']:
+                raise ApiNonceError(self.id + ' ' + response['error'])
             raise ExchangeError(self.id + ' ' + response['error'])
         if 'success' in response:
             if not response['success']:

@@ -49,3 +49,6 @@ class RequestTimeout       (NetworkError):  pass
 class ExchangeNotAvailable (NetworkError):  pass
 
 #==============================================================================
+# added by Y.Okada
+# recoverable error. caused by non incremented nonce value
+class ApiNonceError       (AuthenticationError): pass
