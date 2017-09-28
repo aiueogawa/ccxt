@@ -17125,7 +17125,6 @@ class zaif (Exchange):
         else:
             url += 'ecapi' if(api == 'ecapi') else 'tapi'
             nonce = self.nonce()
-            print(nonce)
             body = self.urlencode(self.extend({
                 'method': path,
                 'nonce': nonce,
@@ -17137,8 +17136,6 @@ class zaif (Exchange):
             }
         response = self.fetch(url, method, headers, body)
         if 'error' in response:
-            print(response)
-            print(response['error'])
             if 'insufficient funds' in response['error']:
                 raise InsufficientFunds(self.id + ' ' + response['error'])
             if 'api key dont have' in response['error']:
