@@ -188,14 +188,14 @@ class Exchange(object):
                 ])
             else:
                 details = str(error)
-            raise exception_type(' '.join([
+            raise exception_type(self.id, ' '.join([
                 self.id,
                 method,
                 url,
                 details,
             ]))
         else:
-            raise exception_type(' '.join([self.id, method, url, details]))
+            raise exception_type(self.id, ' '.join([self.id, method, url, details]))
 
     def fetch(self, url, method='GET', headers=None, body=None):
         """Perform a HTTP request and return decoded JSON data"""
@@ -223,7 +223,7 @@ class Exchange(object):
             response = opener.open(request, timeout=int(self.timeout / 1000))
             text = response.read()
         except socket.timeout as e:
-            raise RequestTimeout(' '.join([self.id, method, url, 'request timeout']))
+            raise RequestTimeout(self.id, ' '.join([self.id, method, url, 'request timeout']))
         except ssl.SSLError as e:
             self.raise_error(ExchangeNotAvailable, url, method, e)
         except _urllib.HTTPError as e:
@@ -280,16 +280,16 @@ class Exchange(object):
     def handle_rest_response(self, response, url, method='GET', headers=None, body=None):
         try:
             if (len(response) < 2):
-                raise ExchangeError(''.join([self.id, method, url, 'returned empty response']))
+                raise ExchangeError(self.id, ''.join([self.id, method, url, 'returned empty response']))
             return json.loads(response)
         except Exception as e:
             ddos_protection = re.search('(cloudflare|incapsula)', response, flags=re.IGNORECASE)
             exchange_not_available = re.search('(offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing)', response, flags=re.IGNORECASE)
             if ddos_protection:
-                raise DDoSProtection(' '.join([self.id, method, url, response]))
+                raise DDoSProtection(self.id, ' '.join([self.id, method, url, response]))
             if exchange_not_available:
                 message = 'exchange downtime, exchange closed for maintenance or offline, DDoS protection or rate-limiting in effect'
-                raise ExchangeNotAvailable(' '.join([
+                raise ExchangeNotAvailable(self.id, ' '.join([
                     self.id,
                     method,
                     url,
@@ -297,7 +297,7 @@ class Exchange(object):
                     message,
                 ]))
             if isinstance(e, ValueError):
-                raise ExchangeError(' '.join([self.id, method, url, response, str(e)]))
+                raise ExchangeError(self.id, ' '.join([self.id, method, url, response, str(e)]))
             raise
 
     @staticmethod
@@ -613,7 +613,7 @@ class Exchange(object):
         return self.fetch_markets()
 
     def fetch_tickers(self, symbols=None):
-        raise NotSupported(self.id + ' API does not allow to fetch all tickers at once with a single call to fetch_tickers () for now')
+        raise NotSupported(self.id, self.id + ' API does not allow to fetch all tickers at once with a single call to fetch_tickers () for now')
 
     def fetchTickers(self, symbols=None):
         return self.fetch_tickers(symbols)
@@ -626,25 +626,25 @@ class Exchange(object):
         return order['status']
 
     def fetch_order(self, id, params={}):
-        raise NotSupported(self.id + ' fetch_order() is not implemented yet')
+        raise NotSupported(self.id, self.id + ' fetch_order() is not implemented yet')
 
     def fetchOrder(self, id, params={}):
         return self.fetch_order(id, params)
 
     def fetch_orders(self, params={}):
-        raise NotSupported(self.id + ' fetch_orders() is not implemented yet')
+        raise NotSupported(self.id, self.id + ' fetch_orders() is not implemented yet')
 
     def fetchOrders(self, params={}):
         return self.fetch_orders(params)
 
     def fetch_open_orders(self, market=None, params={}):
-        raise NotSupported(self.id + ' fetch_open_orders() not implemented yet')
+        raise NotSupported(self.id, self.id + ' fetch_open_orders() not implemented yet')
 
     def fetchOpenOrders(self, market=None, params={}):
         return self.fetch_open_orders(market, params)
 
     def fetch_closed_orders(self, market=None, params={}):
-        raise NotSupported(self.id + ' fetch_closed_orders() not implemented yet')
+        raise NotSupported(self.id, self.id + ' fetch_closed_orders() not implemented yet')
 
     def fetchClosedOrders(self, market=None, params={}):
         return self.fetch_closed_orders(market, params)
@@ -684,7 +684,7 @@ class Exchange(object):
         return self.parse_order_book(orderbook, timestamp, bids_key, asks_key, price_key, amount_key)
 
     def fetch_ohlcv(self, symbol, timeframe='1m', since=None, limit=None, params={}):
-        raise NotSupported(self.id + ' API does not allow to fetch OHLCV series for now')
+        raise NotSupported(self.id, self.id + ' API does not allow to fetch OHLCV series for now')
 
     def fetchOHLCV(self, symbol, timeframe='1m', since=None, limit=None, params={}):
         return self.fetch_ohlcv(self, timeframe, since, limit, params)

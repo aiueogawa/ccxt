@@ -130,6 +130,7 @@ import math
 import sys
 import time
 import decimal
+import re
 
 #------------------------------------------------------------------------------
 
@@ -2608,6 +2609,29 @@ class bitflyer (Exchange):
         }
         params.update(config)
         super(bitflyer, self).__init__(params)
+        self.fetch_market_data()
+        self.fetch_my_balance()
+        self.pre_order_id = self.fetch_pre_order_id()
+
+    def fetch_pre_order_id(self):
+        trade_histry = self.privateGetExchangeOrdersTransactions()
+        if len(trade_histrory) == 0:
+            return None
+        else:
+            return trade_histrory[0]['child_order_acceptance_id']
+
+    def update_pre_order_id(self, order_id):
+        self.pre_order_id = order_id
+
+    def create_arb_market_buy_order(self, symbol, amount, params={}):
+        f_rt = self.create_order(symbol, 'market', 'buy', amount, None, params)
+        self.update_pre_order_id(f_rt['id'])
+        return f_rt
+
+    def create_arb_market_sell_order(self, symbol, amount, params={}):
+        f_rt = self.create_order(symbol, 'market', 'sell', amount, None, params)
+        self.update_pre_order_id(f_rt['id'])
+        return f_rt
 
     def fetch_markets(self):
         markets = self.publicGetMarkets()
@@ -2771,10 +2795,45 @@ class bitflyer (Exchange):
             headers = {
                 'ACCESS-KEY': self.apiKey,
                 'ACCESS-TIMESTAMP': nonce,
-                'ACCESS-SIGN': self.hmac(self.encode(auth), self.secret),
+                'ACCESS-SIGN': self.hmac(self.encode(auth), str.encode(self.secret)),
                 'Content-Type': 'application/json',
             }
         return self.fetch(url, method, headers, body)
+
+    def handle_rest_errors(self, exception, http_status_code, response, url, method='GET'):
+        error = None
+        details = response if response else None
+        if http_status_code == 429:
+            error = DDoSProtection
+        elif http_status_code in [404, 409, 422, 500, 501, 502, 520, 521, 522, 525]:
+            details = exception.read().decode('utf-8', 'ignore') if exception else (str(http_status_code) + ' ' + response)
+            error = ExchangeNotAvailable
+        elif http_status_code in [400, 403, 405, 503]:
+            # special case to detect ddos protection
+            reason = exception.read().decode('utf-8', 'ignore') if exception else response
+            ddos_protection = re.search('(cloudflare|incapsula)', reason, flags=re.IGNORECASE)
+            if ddos_protection:
+                error = DDoSProtection
+            elif 'The minimum order size is' in reason:
+                error = ExchangeError
+                details = reason
+            else:
+                error = ExchangeNotAvailable
+                details = '(possible reasons: ' + ', '.join([
+                    'invalid API keys',
+                    'bad or old nonce',
+                    'exchange is down or offline',
+                    'on maintenance',
+                    'DDoS protection',
+                    'rate-limiting',
+                    reason,
+                ]) + ')'
+        elif http_status_code in [408, 504]:
+            error = RequestTimeout
+        elif http_status_code in [401, 511]:
+            error = AuthenticationError
+        if error:
+            self.raise_error(error, url, method, exception if exception else str(http_status_code), details)
 
 #------------------------------------------------------------------------------
 
@@ -7355,12 +7414,12 @@ class coincheck (Exchange):
     def update_pre_order_id(self, order_id):
         self.pre_order_id = order_id
 
-    def create_preudo_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
+    def create_arb_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
         c_rt = self.create_limit_buy_order(symbol, amount, int(self.best_ask_price) + price_buff, params)
         self.update_pre_order_id(c_rt['info']['id'])
         return c_rt
 
-    def create_market_sell_order(self, symbol, amount, params={}):
+    def create_arb_market_sell_order(self, symbol, amount, params={}):
         c_rt = self.create_order(symbol, 'market', 'sell', amount, None, params)
         self.update_pre_order_id(c_rt['info']['id'])
         return c_rt
@@ -7475,7 +7534,7 @@ class coincheck (Exchange):
         if 'success' in response:
             if response['success']:
                 return response
-        raise ExchangeError(self.id + ' ' + self.json(response))
+        raise ExchangeError(self.id, self.id + ' ' + self.json(response))
 
     def handle_rest_errors(self, exception, http_status_code, response, url, method='GET'):
         import re
@@ -17006,7 +17065,7 @@ class zaif (Exchange):
     def create_order(self, symbol, type, side, amount, price=None, params={}):
         self.load_markets()
         if type == 'market':
-            raise ExchangeError(self.id + ' allows limit orders only')
+            raise ExchangeError(self.id, self.id + ' allows limit orders only')
         response = self.privatePostTrade(self.extend({
             'currency_pair': self.market_id(symbol),
             'action': 'bid' if(side == 'buy') else 'ask',
@@ -17021,13 +17080,13 @@ class zaif (Exchange):
     def update_pre_order_id(self, order_id):
         self.pre_order_id = order_id
 
-    def create_preudo_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
+    def create_arb_market_buy_order(self, symbol, amount, params={}, price_buff=50000):
         params['comment'] = self.create_z_my_order_id()
         z_rt = self.create_limit_buy_order(symbol, amount, int(self.best_ask_price) + price_buff, params)
         self.update_pre_order_id(params['comment'])
         return z_rt
 
-    def create_preudo_market_sell_order(self, symbol, amount, params={}, price_buff=50000):
+    def create_arb_market_sell_order(self, symbol, amount, params={}, price_buff=50000):
         params['comment'] = self.create_z_my_order_id()
         z_rt = self.create_limit_sell_order(symbol, amount, int(self.best_bid_price) - price_buff, params)
         self.update_pre_order_id(params['comment'])
@@ -17104,7 +17163,7 @@ class zaif (Exchange):
     def withdraw(self, currency, amount, address, params={}):
         self.load_markets()
         if currency == 'JPY':
-            raise ExchangeError(self.id + ' does not allow ' + currency + ' withdrawals')
+            raise ExchangeError(self.id, self.id + ' does not allow ' + currency + ' withdrawals')
         result = self.privatePostWithdraw(self.extend({
             'currency': currency,
             'amount': amount,
@@ -17137,13 +17196,13 @@ class zaif (Exchange):
         response = self.fetch(url, method, headers, body)
         if 'error' in response:
             if 'insufficient funds' in response['error']:
-                raise InsufficientFunds(self.id + ' ' + response['error'])
+                raise InsufficientFunds(self.id, self.id + ' ' + response['error'])
             if 'api key dont have' in response['error']:
-                raise AuthenticationError(self.id + ' ' + response['error'])
+                raise AuthenticationError(self.id, self.id + ' ' + response['error'])
             if 'nonce not incremented' in response['error']:
-                raise ApiNonceError(self.id + ' ' + response['error'])
-            raise ExchangeError(self.id + ' ' + response['error'])
+                raise ApiNonceError(self.id, self.id + ' ' + response['error'])
+            raise ExchangeError(self.id, self.id + ' ' + response['error'])
         if 'success' in response:
             if not response['success']:
-                raise ExchangeError(self.id + ' ' + self.json(response))
+                raise ExchangeError(self.id, self.id + ' ' + self.json(response))
         return response
