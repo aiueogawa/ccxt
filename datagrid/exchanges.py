@@ -2614,11 +2614,11 @@ class bitflyer (Exchange):
         self.pre_order_id = self.fetch_pre_order_id()
 
     def fetch_pre_order_id(self):
-        trade_histry = self.privateGetExchangeOrdersTransactions()
-        if len(trade_histrory) == 0:
+        trade_histry = self.privateGetExecutions()
+        if len(trade_histry) == 0:
             return None
         else:
-            return trade_histrory[0]['child_order_acceptance_id']
+            return trade_histry[0]['child_order_acceptance_id']
 
     def update_pre_order_id(self, order_id):
         self.pre_order_id = order_id
@@ -2801,6 +2801,7 @@ class bitflyer (Exchange):
         return self.fetch(url, method, headers, body)
 
     def handle_rest_errors(self, exception, http_status_code, response, url, method='GET'):
+        # bitflyerはnonceがないので、ApiNonceErrorはない
         error = None
         details = response if response else None
         if http_status_code == 429:
@@ -2816,6 +2817,9 @@ class bitflyer (Exchange):
                 error = DDoSProtection
             elif 'The minimum order size is' in reason:
                 error = ExchangeError
+                details = reason
+            elif 'Insufficient funds' in reason:
+                error = InsufficientFunds
                 details = reason
             else:
                 error = ExchangeNotAvailable

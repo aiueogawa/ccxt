@@ -772,6 +772,9 @@ class Exchange(object):
         self.btc_free_balance = self.my_balance['BTC']['free']
         self.jpy_free_balance = self.my_balance['JPY']['free']
 
+    def set_trade_type(self, trade_type='buy'):
+        self.trade_type = trade_type
+
     def start_stop_watch(self):
         self.start_time = time.time()
 
