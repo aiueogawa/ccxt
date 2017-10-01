@@ -2633,6 +2633,9 @@ class bitflyer (Exchange):
         self.update_pre_order_id(f_rt['id'])
         return f_rt
 
+    def fetch_open_orders(self):
+        return self.privateGetChildorders(params={'child_order_state': 'ACTIVE'})
+
     def fetch_markets(self):
         markets = self.publicGetMarkets()
         result = []
@@ -7427,6 +7430,14 @@ class coincheck (Exchange):
         c_rt = self.create_order(symbol, 'market', 'sell', amount, None, params)
         self.update_pre_order_id(c_rt['info']['id'])
         return c_rt
+
+    def fetch_open_orders(self):
+        response = self.privateGetExchangeOrdersOpens()
+        if response['success']:
+            return response['orders']
+        else:
+            # エラー処理を追加
+            pass
 
     def fetch_balance(self, params={}):
         balances = self.privateGetAccountsBalance()
