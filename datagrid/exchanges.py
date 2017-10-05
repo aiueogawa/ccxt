@@ -16960,8 +16960,8 @@ class zaif (Exchange):
         import time
         from datetime import datetime
         dt = datetime.now()
-        milli_unix = int(time.mktime(dt.timetuple()) * 1e3 + dt.microsecond / 1e3)
-        z_my_order_id = 'z_' + str(milli_unix)
+        unix_till_microsencod = int(time.mktime(dt.timetuple()) * 1e5 + dt.microsecond)
+        z_my_order_id = 'z_' + str(unix_till_microsencod)
         return z_my_order_id
 
     def fetch_pre_order_id(self):
