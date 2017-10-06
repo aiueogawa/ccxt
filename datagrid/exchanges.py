@@ -2612,7 +2612,8 @@ class bitflyer (Exchange):
         self.fetch_market_data()
         self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
-        self.min_lot_digit = 4
+        self.min_lot_digit = 3
+        self.min_lot = 0.001
 
     def fetch_pre_order_id(self):
         trade_histry = self.privateGetExecutions()
@@ -7409,6 +7410,7 @@ class coincheck (Exchange):
         self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
         self.min_lot_digit = 4
+        self.min_lot = 0.005
 
     def fetch_pre_order_id(self):
         while True:
@@ -7568,6 +7570,9 @@ class coincheck (Exchange):
             if http_status_code == 400 and 'Amount btc の所持金額が足りません' in reason:
                 error = InsufficientFunds
                 details = reason
+            elif http_status_code == 400 and 'Amount 量が最低量(0.005 BTC)を下回っています' in reason:
+                error = ExchangeError
+                details = reason
             elif http_status_code == 403 and 'This api is not permitted' in reason:
                 error = AuthenticationError
                 details = reason
@@ -7596,6 +7601,7 @@ class coincheck (Exchange):
             else:
                 error = AuthenticationError
         if error:
+            print(error, exception)
             self.raise_error(error, url, method, exception if exception else str(http_status_code), details)
 
 #------------------------------------------------------------------------------
@@ -16958,6 +16964,7 @@ class zaif (Exchange):
         self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
         self.min_lot_digit = 4
+        self.min_lot = 0.0001
 
     def create_z_my_order_id(self):
         import time
@@ -17219,6 +17226,8 @@ class zaif (Exchange):
                 raise AuthenticationError(self.id, self.id + ' ' + response['error'])
             if 'nonce not incremented' in response['error']:
                 raise ApiNonceError(self.id, self.id + ' ' + response['error'])
+            if 'invalid amount parameter' in response['error']:
+                raise ExchangeError(self.id, self.id + ' ' + response['error'])
             raise ExchangeError(self.id, self.id + ' ' + response['error'])
         if 'success' in response:
             if not response['success']:
