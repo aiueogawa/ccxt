@@ -2612,6 +2612,7 @@ class bitflyer (Exchange):
         self.fetch_market_data()
         self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
+        self.min_lot_digit = 4
 
     def fetch_pre_order_id(self):
         trade_histry = self.privateGetExecutions()
@@ -7407,6 +7408,7 @@ class coincheck (Exchange):
         self.fetch_market_data()
         self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
+        self.min_lot_digit = 4
 
     def fetch_pre_order_id(self):
         while True:
@@ -16955,6 +16957,7 @@ class zaif (Exchange):
         self.fetch_market_data()
         self.fetch_my_balance()
         self.pre_order_id = self.fetch_pre_order_id()
+        self.min_lot_digit = 4
 
     def create_z_my_order_id(self):
         import time

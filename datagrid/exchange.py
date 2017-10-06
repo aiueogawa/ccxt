@@ -767,10 +767,14 @@ class Exchange(object):
         self.best_bid_price = self.order_book['bids'][0][0]
         self.best_bid_volume = self.order_book['bids'][0][1]
 
-    def fetch_my_balance(self):
+    def fetch_my_balance(self, symbol='BTC/JPY'):
         self.my_balance = self.fetch_balance()
         self.btc_free_balance = self.my_balance['BTC']['free']
         self.jpy_free_balance = self.my_balance['JPY']['free']
+        ticker = self.fetch_ticker(symbol)
+        last_price = ticker['last']
+        self.jpy_free_balance_in_btc = self.jpy_free_balance / last_price
+        self.total_free_balance_in_btc = self.btc_free_balance + self.jpy_free_balance_in_btc
 
     def set_trade_type(self, trade_type='buy'):
         self.trade_type = trade_type
