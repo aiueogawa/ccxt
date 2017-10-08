@@ -7601,7 +7601,6 @@ class coincheck (Exchange):
             else:
                 error = AuthenticationError
         if error:
-            print(error, exception)
             self.raise_error(error, url, method, exception if exception else str(http_status_code), details)
 
 #------------------------------------------------------------------------------
