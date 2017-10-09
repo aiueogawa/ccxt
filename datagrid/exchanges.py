@@ -2844,6 +2844,29 @@ class bitflyer (Exchange):
         if error:
             self.raise_error(error, url, method, exception if exception else str(http_status_code), details)
 
+    def handle_rest_response(self, response, url, method='GET', headers=None, body=None):
+        try:
+            if (len(response) < 2):
+                raise ExchangeError(self.id, ''.join([self.id, method, url, 'returned empty response']))
+            return json.loads(response)
+        except Exception as e:
+            ddos_protection = re.search('(cloudflare|incapsula)', response, flags=re.IGNORECASE)
+            exchange_not_available = re.search('(offline|busy|retry|wait|unavailable|maintain|maintenance|maintenancing)', response, flags=re.IGNORECASE)
+            if ddos_protection:
+                raise DDoSProtection(self.id, ' '.join([self.id, method, url, response]))
+            if exchange_not_available:
+                message = 'exchange downtime, exchange closed for maintenance or offline, DDoS protection or rate-limiting in effect'
+                raise ExchangeNotAvailable(self.id, ' '.join([
+                    self.id,
+                    method,
+                    url,
+                    response,
+                    message,
+                ]))
+            if isinstance(e, ValueError):
+                raise ExchangeError(self.id, ' '.join([self.id, method, url, response, str(e)]))
+            raise
+
 #------------------------------------------------------------------------------
 
 class bitlish (Exchange):
