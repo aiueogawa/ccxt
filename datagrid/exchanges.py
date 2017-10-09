@@ -16994,11 +16994,11 @@ class zaif (Exchange):
     def create_z_my_order_id(self):
         import time
         from datetime import datetime
-        import random
+        import uuid
         dt = datetime.now()
         unixtime_str = str(int(time.mktime(dt.timetuple()) * 1e5 + dt.microsecond))
-        rand_val_str = str(random.randrange(10**10,10**11))
-        z_my_order_id = 'z_' + unixtime_str + rand_val_str
+        mac_addr = hex(uuid.getnode()).replace('0x', '')
+        z_my_order_id = 'z_' + unixtime_str + mac_addr
         return z_my_order_id
 
     def fetch_pre_order_id(self):
