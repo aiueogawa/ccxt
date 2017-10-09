@@ -2847,6 +2847,9 @@ class bitflyer (Exchange):
     def handle_rest_response(self, response, url, method='GET', headers=None, body=None):
         try:
             if (len(response) < 2):
+                # bitFlyerのcancel系の注文のときは空のresponseのため、追記
+                if 'cancel' in url:
+                    return True
                 raise ExchangeError(self.id, ''.join([self.id, method, url, 'returned empty response']))
             return json.loads(response)
         except Exception as e:
