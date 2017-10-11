@@ -17247,6 +17247,8 @@ class zaif (Exchange):
             }
         response = self.fetch(url, method, headers, body)
         if 'error' in response:
+            if 'time out' in response['error']:
+                raise RequestTimeout(self.id, self.id + ' ' + response['error'])
             if 'insufficient funds' in response['error']:
                 raise InsufficientFunds(self.id, self.id + ' ' + response['error'])
             if 'api key dont have' in response['error']:
