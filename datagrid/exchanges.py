@@ -2805,18 +2805,36 @@ class bitflyer (Exchange):
             }
         return self.fetch(url, method, headers, body)
 
+    def is_content_encoding_gzip(self, exception):
+        for item in exception.headers.items():
+            if item[0] == 'Content-Encoding':
+                content_encoding = item[1]
+        return True if content_encoding == 'gzip' else False
+
+    def get_err_details(self, exception):
+        import gzip
+        import json
+        gzip_data = gzip.GzipFile(fileobj=exception)
+        details = gzip_data.read().decode('utf-8')
+        gzip_data.close()
+        details = json.loads(details)
+        return details['error_message']
+
     def handle_rest_errors(self, exception, http_status_code, response, url, method='GET'):
         # bitflyerはnonceがないので、ApiNonceErrorはない
+        gzip_flg = self.is_content_encoding_gzip(exception)
         error = None
         details = response if response else None
         if http_status_code == 429:
             error = DDoSProtection
         elif http_status_code in [404, 409, 422, 500, 501, 502, 520, 521, 522, 525]:
-            details = exception.read().decode('utf-8', 'ignore') if exception else (str(http_status_code) + ' ' + response)
+            details = self.get_err_details(exception) if gzip_flg else exception.read().decode('utf-8', 'ignore') if exception else (str(http_status_code) + ' ' + response)
+            # details = exception.read().decode('utf-8', 'ignore') if exception else (str(http_status_code) + ' ' + response)
             error = ExchangeNotAvailable
         elif http_status_code in [400, 403, 405, 503]:
             # special case to detect ddos protection
-            reason = exception.read().decode('utf-8', 'ignore') if exception else response
+            reason = self.get_err_details(exception) if gzip_flg else exception.read().decode('utf-8', 'ignore') if exception else response
+            # reason = exception.read().decode('utf-8', 'ignore') if exception else response
             ddos_protection = re.search('(cloudflare|incapsula)', reason, flags=re.IGNORECASE)
             if ddos_protection:
                 error = DDoSProtection
