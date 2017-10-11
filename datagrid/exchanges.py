@@ -2844,6 +2844,9 @@ class bitflyer (Exchange):
             elif 'Insufficient funds' in reason:
                 error = InsufficientFunds
                 details = reason
+            elif 'Invalid order amount' in reason:
+                error = ExchangeError
+                details = reason
             else:
                 error = ExchangeNotAvailable
                 details = '(possible reasons: ' + ', '.join([
