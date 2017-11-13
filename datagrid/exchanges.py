@@ -2809,7 +2809,9 @@ class bitflyer (Exchange):
         for item in exception.headers.items():
             if item[0] == 'Content-Encoding':
                 content_encoding = item[1]
-        return True if content_encoding == 'gzip' else False
+                return True if content_encoding == 'gzip' else False
+        return False
+
 
     def get_err_details(self, exception):
         import gzip
